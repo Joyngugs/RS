@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Scan Product{% endblock %}
+
+{% block content %}
+<!-- shop/templates/scan.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Barcode</title>
+</head>
+<body >
+    <div class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="p-4 bg-light rounded shadow-sm" style="max-width: 100%; width: 400px;">
+    <h1>Scan Barcode</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="barcode_image">Upload Barcode Image:</label><br>
+        <input required type="file" id="barcode_image" name="barcode_image" accept="image/*"><br><br>
+        <input type="submit" value="Scan Barcode">
+    </form>
+    </div>
+</div>
+</body>
+</html>
+{% endblock %}

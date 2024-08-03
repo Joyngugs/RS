@@ -1,0 +1,135 @@
+{% extends 'base.html' %}
+
+{% block title %}Homepage{% endblock %}
+
+{% block content %}
+
+     <!-- Main Content Start -->
+     <main class="container mt-5">
+        <!-- Hero Section Start -->
+        <div class="container-fluid py-5 mb-5 hero-header">
+            <div class="container py-5">
+                <div class="row g-5 align-items-center">
+                    <div class="col-md-12 col-lg-7">
+                        <h4 class="mb-3 text-secondary">Welcome to Shop n' Go</h4>
+                        <h1 class="mb-5 display-3 text-primary">Your Ultimate Shopping Companion</h1>
+                        <!-- Hero Section Search Form -->
+<div class="position-relative mx-auto">
+    <form action="{% url 'search_results' %}" method="get">
+        <input class="form-control border-2 border-secondary w-75 py-3 px-4 rounded-pill" type="text" name="query" placeholder="Search" required>
+        <button type="submit" class="btn btn-primary border-2 border-secondary py-3 px-4 position-absolute rounded-pill text-white h-100" style="top: 0; right: 25%;">Submit Now</button>
+    </form>
+</div>
+                    </div>
+                    <div class="col-md-12 col-lg-5">
+                        <div id="carouselId" class="carousel slide position-relative" data-bs-ride="carousel">
+                            <div class="carousel-inner" role="listbox">
+                                <div class="carousel-item active rounded">
+                                    <img src="static/img/fam.jpeg" class="img-fluid w-100 h-100 bg-secondary rounded" alt="First slide">
+                                    <a href="#" class="btn px-4 py-2 text-white rounded">Shopping</a>
+                                </div>
+                                <div class="carousel-item rounded">
+                                    <img src="static/img/shopper.jpg" class="img-fluid w-100 h-100 rounded" alt="Second slide">
+                                    <a href="#" class="btn px-4 py-2 text-white rounded">Quality</a>
+                                </div>
+                                <div class="carousel-item rounded">
+                                    <img src="static/img/sp.webp" class="img-fluid w-100 h-100 rounded" alt="Third slide slide">
+                                    <a href="#" class="btn px-4 py-2 text-white rounded">Convenient</a>
+                                </div>
+                                <div class="carousel-item rounded">
+                                    <img src="static/img/hero-img-1.png" class="img-fluid w-100 h-100 rounded" alt="Fourth slide">
+                                    <a href="#" class="btn px-4 py-2 text-white rounded">Discounts</a>
+                                </div>
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#carouselId" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Previous</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#carouselId" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Next</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Hero Section End -->
+
+
+<!-- Category Buttons -->
+<div class="container text-center mt-4">
+    <div class="btn-group">
+        {% for category in categories %}
+        <a href="{% url 'product_list' %}?category={{ category.0 }}" class="btn btn-secondary mx-2">
+            {{ category.1 }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Products Section -->
+<div class="container mt-4">
+    <div class="row">
+        {% for product in products %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <a href="{% url 'add_to_cart' product.id %}">
+                    <img src="{{ product.picture.url }}" alt="{{ product.name }}" class="card-img-top">
+                </a>
+                <div class="card-body">
+                    <h5 class="card-title">{{ product.name }}</h5>
+                    <p class="card-text">Price: ${{ product.price }}</p>
+                    <button 
+                        class="btn btn-primary add-to-cart-btn" 
+                        data-product-id="{{ product.id }}">
+                        Add to Cart
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+
+
+<p class="text-center mt-4">Please <a href="{% url 'register' %}">register</a> or <a href="{% url 'login' %}">login</a> to start shopping.</p>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+        document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                const productId = button.getAttribute('data-product-id');
+                console.log(`Adding product ${productId} to cart`); // Debug log
+
+                fetch(`/add_to_cart/${productId}/`, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response data:', data); // Debug log
+                    if (data.success) {
+                        button.innerText = 'Added to Cart';
+                        setTimeout(() => {
+                            button.innerText = 'Add to Cart';
+                        }, 2000);
+                    } else {
+                        console.error('Error:', data.message);
+                    }
+                })
+                .catch(error => console.error('Fetch Error:', error));
+            });
+        });
+    });
+</script>
+
+
+{% endblock %}

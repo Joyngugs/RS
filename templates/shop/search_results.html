@@ -1,0 +1,13 @@
+<!-- search_results.html -->
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Search Results for "{{ query }}"</h1>
+  <ul>
+    {% for product in products %}
+      <li>{{ product.name }} - {{ product.get_category_display }} - ${{ product.price }}</li>
+    {% empty %}
+      <li>No products found.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -1,0 +1,241 @@
+{% extends 'base.html' %}
+
+{% block title %}Shopping Cart{% endblock %}
+
+{% block content %}
+<!-- Single Page Header start -->
+<div class="container-fluid page-header py-5">
+    <h1 class="text-center text-white display-6">Cart</h1>
+    <ol class="breadcrumb justify-content-center mb-0">
+        <li class="breadcrumb-item"><a href="#">Home</a></li>
+        <li class="breadcrumb-item"><a href="#">Pages</a></li>
+        <li class="breadcrumb-item active text-white">Cart</li>
+    </ol>
+</div>
+<!-- Single Page Header End -->
+
+<!-- Cart Page Start -->
+<div class="container-fluid py-5">
+    <div class="container py-5">
+        <div class="table-responsive">
+            <form method="post">
+                {% csrf_token %}
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Products</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Price</th>
+                            <th scope="col">Quantity</th>
+                            <th scope="col">Total</th>
+                            <th scope="col">Handle</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in cart_items %}
+                        <tr>
+                            <th scope="row">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ item.product.picture.url }}" class="img-fluid me-3" style="width: 80px; height: 80px; object-fit: cover;" alt="{{ item.product.name }}">
+                                </div>
+                            </th>
+                            <td>
+                                <p class="mb-0 mt-3">{{ item.product.name }}</p>
+                            </td>
+                            <td>
+                                <p class="mb-0 mt-3">${{ item.product.price|floatformat:2 }}</p>
+                            </td>
+                            <td>
+                                <div class="input-group quantity mt-3" style="width: 100px;">
+                                    <input type="hidden" name="product_id" value="{{ item.product.id }}">
+                                    <input type="hidden" name="action" value="update">
+                                    <div class="input-group-btn">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle plus-btn" data-product-id="{{ item.product.id }}">
+                                            <i class="fa fa-plus"></i>
+                                        </button>
+                                    </div>
+                                    <input type="text" id="quantity-{{ item.product.id }}" class="form-control form-control-sm text-center border-0" value="{{ item.quantity }}" readonly>
+                                    <div class="input-group-btn">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-circle minus-btn" data-product-id="{{ item.product.id }}" {% if item.quantity <= 1 %}disabled{% endif %}>
+                                            <i class="fa fa-minus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <p id="total-price-{{ item.product.id }}" class="mb-0 mt-3">${{ item.product.price|floatformat:2 }}</p>
+                            </td>                            
+                            <td>
+                                <button class="btn btn-sm btn-outline-danger rounded-circle mt-3 delete-btn" data-product-id="{{ item.product.id }}">
+                                    <i class="fa fa-times"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p>Total Price: ${{ total_price|floatformat:2 }}</p>
+            </form>
+            
+            <div class="row g-4 justify-content-end">
+                <div class="col-8"></div>
+                <div class="col-sm-8 col-md-7 col-lg-6 col-xl-4">
+                    <div class="bg-light rounded">
+                        <div class="p-4">
+                            <h1 class="display-6 mb-4">Cart <span class="fw-normal">Total</span></h1>
+                            <div class="d-flex justify-content-between mb-4">
+                                <h5 class="mb-0 me-4">Subtotal:</h5>
+                                <p class="mb-0">${{ total_price|floatformat:2 }}</p>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <h5 class="mb-0 me-4">Tax</h5>
+                                <div class="">
+                                    <p class="mb-0">0.5%</p>
+                                </div>
+                            </div>
+                        <!-- Update your cart total and subtotal elements to have the correct IDs -->
+                            <div class="py-4 mb-4 border-top border-bottom d-flex justify-content-between">
+                                <h5 class="mb-0 ps-4 me-4">Total</h5>
+                                <p id="cart-total" class="mb-0 pe-4">${{ total_price }}</p>
+                            </div>
+
+                        <form method="post" action="{% url 'complete_shopping' %}">
+                            {% csrf_token %}
+                            <div class="form-group py-3 px-4">
+                                <label for="mpesa_number">MPesa Number:</label>
+                                <input type="text" name="mpesa_number" id="mpesa_number" class="form-control" required>
+                            </div>
+                            <button type="submit" class="btn border-secondary rounded-pill px-4 py-3 text-primary text-uppercase mb-4 ms-4">Proceed Checkout</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    document.querySelectorAll('.add-to-cart-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            const productId = button.getAttribute('data-product-id');
+            fetch(`/add_to_cart/${productId}/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    button.innerText = 'Added to Cart';
+                    setTimeout(() => {
+                        button.innerText = 'Add to Cart';
+                    }, 2000);
+                } else {
+                    console.error(data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+
+    // Quantity adjustment functions
+    function updateQuantity(productId, delta) {
+        const quantityInput = document.getElementById(`quantity-${productId}`);
+        let currentQuantity = parseInt(quantityInput.value);
+        currentQuantity += delta;
+
+        if (currentQuantity < 1) return; // Prevent quantity from going below 1
+
+        quantityInput.value = currentQuantity;
+
+        // Update total price for the product
+        const pricePerUnit = parseFloat(document.getElementById(`price-${productId}`).textContent.replace('$', ''));
+        const totalPriceElement = document.getElementById(`total-price-${productId}`);
+        totalPriceElement.textContent = `$${(pricePerUnit * currentQuantity).toFixed(2)}`;
+
+        // Update the total cart price
+        updateCartTotal();
+
+        // Send updated quantity to the server
+        fetch(`/update_cart/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ 'quantity': currentQuantity })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) {
+                console.error('Failed to update quantity');
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function updateCartTotal() {
+        const priceElements = document.querySelectorAll('[id^="total-price-"]');
+        let subtotal = 0;
+
+        priceElements.forEach(el => {
+            subtotal += parseFloat(el.textContent.replace('$', ''));
+        });
+
+        const tax = subtotal * 0.005; // 0.5% tax
+        const total = subtotal + tax;
+
+        // Ensure these IDs match those used in the HTML
+        document.querySelector('p[id="cart-subtotal"]').textContent = `$${subtotal.toFixed(2)}`;
+        document.querySelector('p[id="cart-total"]').textContent = `$${total.toFixed(2)}`;
+    }
+
+    // Event listeners for quantity buttons
+    document.querySelectorAll('.plus-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const productId = button.getAttribute('data-product-id');
+            updateQuantity(productId, +1);
+        });
+    });
+
+    document.querySelectorAll('.minus-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const productId = button.getAttribute('data-product-id');
+            updateQuantity(productId, -1);
+        });
+    });
+
+    // Delete functionality
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', (event) => {
+            event.preventDefault();
+            const productId = button.getAttribute('data-product-id');
+            fetch(`/delete_from_cart/${productId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ 'product_id': productId })
+            })
+            .then(response => {
+                if (response.ok) {
+                    button.closest('tr').remove();
+                    updateCartTotal(); // Update total after item removal
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    });
+</script>
+{% endblock %}
+

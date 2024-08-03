@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <h2>Complete Your Purchase</h2>
+    <p>Total Price: {{ total_price }}</p>
+    <form action="{% url 'complete_shopping' %}" method="post">
+        {% csrf_token %}
+        <label for="mpesa_number">MPesa Number:</label>
+        <input type="text" id="mpesa_number" name="mpesa_number" required>
+        <button type="submit">Pay</button>
+    </form>
+{% endblock %}
