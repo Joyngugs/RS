@@ -24,4 +24,6 @@ urlpatterns = [
     path('terms-of-use/', views.terms_of_use, name='terms_of_use'),
     path('sales-and-refund-policy/', views.sales_and_refund_policy, name='sales_and_refund_policy'),
     path('my-account/', views.personal_details, name='personal_details'),
+    path('complete-shopping/', views.complete_shopping, name='complete_shopping'),
+    path('callback/', views.mpesa_callback, name='mpesa_callback'),
 ]

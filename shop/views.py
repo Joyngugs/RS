@@ -17,6 +17,8 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.views.generic.edit import CreateView
 from django.views.generic import ListView
+from django_daraja.mpesa.core import MpesaClient
+from decimal import Decimal
 import requests
 import json
 import io
@@ -154,38 +156,56 @@ def search_results(request):
     return render(request, 'shop/search_results.html', {'products': products, 'query': query})
 
 
+@login_required
 @csrf_exempt
 def complete_shopping(request):
     if request.method == 'POST':
         user = request.user
         cart_items = ShoppingCart.objects.filter(user=user)
-        subtotal = sum(item.product.price * item.quantity for item in cart_items)
-        tax = subtotal * 0.005
+        
+        # Calculate subtotal, tax, and total price
+        subtotal = sum(Decimal(item.product.price) * Decimal(item.quantity) for item in cart_items)
+        tax = subtotal * Decimal('0.005')  # 0.5% tax
         total_price = subtotal + tax 
+
+        # Convert total_price to an integer representing the amount in cents
+        total_price_cents = int(total_price * 100)
 
         if 'mpesa_number' in request.POST:
             mpesa_number = request.POST.get('mpesa_number')
-            mpesa_response = requests.post('https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest', json={
-                'BusinessShortCode': '174379',
-                'Password': 'YOUR_PASSWORD',
-                'Timestamp': 'YOUR_TIMESTAMP',
-                'TransactionType': 'CustomerPayBillOnline',
-                'Amount': total_price,
-                'PartyA': mpesa_number,
-                'PartyB': '174379',
-                'PhoneNumber': mpesa_number,
-                'CallBackURL': 'YOUR_CALLBACK_URL',
-                'AccountReference': 'Shopping',
-                'TransactionDesc': 'Shopping Payment'
-            })
+            cl = MpesaClient()
+            account_reference = 'Shopping_' + str(user.id)  # Unique reference for each transaction
+            transaction_desc = 'Shopping Payment'
+            callback_url = 'https://<forwarding-address>.ngrok-free.app/sanaaart/callback'  # Replace with your callback URL
 
-            if mpesa_response.status_code == 200:
-                cart_items.delete()
-                return JsonResponse({'message': 'Payment successful'})
+            # Use the integer amount in cents
+            response = cl.stk_push(mpesa_number, total_price_cents, account_reference, transaction_desc, callback_url)
+
+            if response['ResponseCode'] == '0':
+                # Store the payment request information in the session or database if needed
+                request.session['payment_status'] = 'pending'
+                request.session['total_price'] = total_price  # Store original amount for reference
+                return JsonResponse({'message': 'Payment request sent successfully. Please complete payment via your MPesa app.'})
             else:
-                return JsonResponse({'error': 'Payment failed'}, status=400)
+                return JsonResponse({'error': 'Payment request failed'}, status=400)
 
+    # Render the complete shopping page with total price
     return render(request, 'shop/complete_shopping.html', {'total_price': total_price})
+
+@csrf_exempt
+def mpesa_callback(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        # Handle the callback data here. You might want to update the payment status in the database or session
+        if data.get('Body', {}).get('stkCallback', {}).get('ResultCode') == 0:
+            # Payment was successful
+            request.session['payment_status'] = 'completed'
+            return JsonResponse({'status': 'success'}, status=201)
+        else:
+            # Payment failed
+            request.session['payment_status'] = 'failed'
+            return JsonResponse({'status': 'failed'}, status=400)
+    return JsonResponse({'status': 'error'}, status=400)
 
 def product_list(request):
     selected_category = request.GET.get('category', '')
